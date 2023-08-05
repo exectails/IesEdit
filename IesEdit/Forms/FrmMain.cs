@@ -429,6 +429,8 @@ namespace IesEdit
 
 					var iesFile = IesFile.LoadXmlString(fileName, text);
 					iesFile.SaveIes(filePath);
+
+					_openedFilePath = filePath;
 				}
 
 				_fileChanged = false;
