@@ -189,7 +189,8 @@ namespace IesEdit
 			this.MnuSave.Enabled = this.BtnSave.Enabled = enabled;
 
 			var fileOpen = (_openedFilePath != null);
-			//this.MnuSaveAsXml.Enabled = fileOpen;
+			this.MnuSaveAsIes.Enabled = fileOpen;
+			this.MnuSaveAsXml.Enabled = fileOpen;
 		}
 
 		/// <summary>
@@ -250,7 +251,7 @@ namespace IesEdit
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
-		private void MnuSaveIes_Click(object sender, EventArgs e)
+		private void MnuSaveAsIes_Click(object sender, EventArgs e)
 		{
 			var fileName = Path.GetFileNameWithoutExtension(_openedFilePath) + ".ies";
 
