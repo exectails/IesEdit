@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -268,6 +269,45 @@ namespace IesEdit.Ies
 			this.Header.NumberColumnCount = 0;
 			this.Header.StringColumnCount = 0;
 
+			// We used to get the column types from the first row read, but this
+			// turned out to be unreliable, as some property values might look
+			// like numbers initially, but are actually strings. For example,
+			// AniTime and HitTime in the skill data are sometimes lists of
+			// numbers stored as strings, where the numbers are separated by
+			// semicolons. Instead, we now go through the data and figure out
+			// the types first.
+			var columnTypes = new Dictionary<string, ColumnType>();
+			foreach (var element in idSpaceElement.Descendants(ElementName))
+			{
+				foreach (var attr in element.Attributes())
+				{
+					var propertyName = attr.Name.LocalName;
+					var type = ColumnType.String;
+
+					if (propertyName.StartsWith("CP_"))
+					{
+						type = ColumnType.Calculated;
+					}
+					else if (IsValueNumeric(attr.Value))
+					{
+						type = ColumnType.Number;
+					}
+
+					if (columnTypes.TryGetValue(propertyName, out var existingType))
+					{
+						// Switch types that vary between rows to strings,
+						// as the data is not consistent and must support
+						// arbitrary values.
+						if (existingType != type)
+							columnTypes[propertyName] = ColumnType.String;
+					}
+					else
+					{
+						columnTypes[propertyName] = type;
+					}
+				}
+			}
+
 			this.Columns.Clear();
 			foreach (var element in idSpaceElement.Descendants(ElementName))
 			{
@@ -283,7 +323,6 @@ namespace IesEdit.Ies
 					var simpleName = propertyName;
 					var access = PropertyAccess.SP;
 					var sync = false;
-					var type = ColumnType.String;
 
 					if (simpleName.StartsWith("EP_"))
 					{
@@ -313,14 +352,18 @@ namespace IesEdit.Ies
 						simpleName = simpleName.Substring(0, ntIndex);
 					}
 
-					if (propertyName.StartsWith("CP_"))
-					{
-						type = ColumnType.Calculated;
-					}
-					else if (IsValueNumeric(attr.Value))
-					{
-						type = ColumnType.Number;
-					}
+					//var type = ColumnType.String;
+					//if (propertyName.StartsWith("CP_"))
+					//{
+					//	type = ColumnType.Calculated;
+					//}
+					//else if (IsValueNumeric(attr.Value))
+					//{
+					//	type = ColumnType.Number;
+					//}
+
+					if (!columnTypes.TryGetValue(propertyName, out var type))
+						type = ColumnType.String;
 
 					var column = new IesColumn();
 					column.Name = propertyName;
@@ -444,6 +487,12 @@ namespace IesEdit.Ies
 				{
 					var column = this.Columns[j];
 					var key = column.Name;
+
+					//if (column.Name.Contains("AniTime") && row.ClassId == 1531)
+					//	Console.WriteLine();
+
+					//if (column.Name.Contains("HitTime") && row.ClassId == 51107)
+					//	Console.WriteLine();
 
 					if (column.IsNumber)
 					{
